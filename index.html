@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Maestros y Materias</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Registro de Maestros y Materias</h1>
+
+    <h2>Registrar Maestro</h2>
+    <form id="formMaestro">
+      <input type="text" id="nombreMaestro" placeholder="Nombre del Maestro" required>
+      <button type="submit">Registrar Maestro</button>
+    </form>
+
+    <h2>Registrar Materia</h2>
+    <form id="formMateria">
+      <input type="text" id="nombreMateria" placeholder="Nombre de la Materia" required>
+      <button type="submit">Registrar Materia</button>
+    </form>
+
+    <h2>Asignar Materias a Maestro</h2>
+    <form id="formAsignarMaterias">
+      <select id="selectMaestro" required></select>
+      <select id="selectMaterias" multiple required></select>
+      <button type="submit">Asignar Materias</button>
+    </form>
+
+    <h2>Maestros Registrados</h2>
+    <ul id="listaMaestros"></ul>
+
+    <h2>Materias Registradas</h2>
+    <ul id="listaMaterias"></ul>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+
+    document.getElementById('formMaestro').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById('nombreMaestro').value;
+      const response = await fetch(`${API_URL}/maestros`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre })
+      });
+      if (response.ok) {
+        document.getElementById('nombreMaestro').value = '';
+        cargarDatos();
+      }
+    });
+
+    document.getElementById('formMateria').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById('nombreMateria').value;
+      const response = await fetch(`${API_URL}/materias`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre })
+      });
+      if (response.ok) {
+        document.getElementById('nombreMateria').value = '';
+        cargarDatos();
+      }
+    });
+
+    document.getElementById('formAsignarMaterias').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const maestroId = document.getElementById('selectMaestro').value;
+      const materiaIds = Array.from(document.getElementById('selectMaterias').selectedOptions).map(option => option.value);
+      const response = await fetch(`${API_URL}/asignar-materias`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maestroId, materiaIds })
+      });
+      if (response.ok) {
+        cargarDatos();
+      }
+    });
+
+   // Función cargarDatos
+async function cargarDatos() {
+  const maestrosRes = await fetch(`${API_URL}/maestros`);
+  const maestros = await maestrosRes.json();
+  const materiasRes = await fetch(`${API_URL}/materias`);
+  const materias = await materiasRes.json();
+
+  const selectMaestro = document.getElementById('selectMaestro');
+  const selectMaterias = document.getElementById('selectMaterias');
+  const listaMaestros = document.getElementById('listaMaestros');
+  const listaMaterias = document.getElementById('listaMaterias');
+
+  selectMaestro.innerHTML = '';
+  selectMaterias.innerHTML = '';
+  listaMaestros.innerHTML = '';
+  listaMaterias.innerHTML = '';
+
+  maestros.forEach(maestro => {
+    const option = document.createElement('option');
+    option.value = maestro._id;
+    option.textContent = maestro.nombre;
+    selectMaestro.appendChild(option);
+
+    const li = document.createElement('li');
+    li.textContent = `${maestro.nombre} - Materias: ${maestro.materias.map(m => m.nombre).join(', ')}`;
+    const actions = document.createElement('div');
+    actions.classList.add('actions');
+
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Eliminar';
+    deleteButton.onclick = async () => {
+      const response = await fetch(`${API_URL}/maestros/${maestro._id}`, { method: 'DELETE' });
+      if (response.ok) {
+        cargarDatos();
+      }
+    };
+
+    const updateButton = document.createElement('button');
+    updateButton.textContent = 'Actualizar';
+    updateButton.classList.add('update');
+    updateButton.onclick = () => {
+      const nuevoNombre = prompt('Nuevo nombre:', maestro.nombre);
+      if (nuevoNombre) {
+        fetch(`${API_URL}/maestros/${maestro._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre: nuevoNombre })
+        }).then(response => {
+          if (response.ok) {
+            cargarDatos();
+          }
+        });
+      }
+    };
+
+    actions.appendChild(updateButton);
+    actions.appendChild(deleteButton);
+    li.appendChild(actions);
+    listaMaestros.appendChild(li);
+  });
+
+  materias.forEach(materia => {
+    const option = document.createElement('option');
+    option.value = materia._id;
+    option.textContent = materia.nombre;
+    selectMaterias.appendChild(option);
+
+    const li = document.createElement('li');
+    li.textContent = materia.nombre;
+    const actions = document.createElement('div');
+    actions.classList.add('actions');
+
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Eliminar';
+    deleteButton.onclick = async () => {
+      const response = await fetch(`${API_URL}/materias/${materia._id}`, { method: 'DELETE' });
+      if (response.ok) {
+        cargarDatos();
+      }
+    };
+
+    const updateButton = document.createElement('button');
+    updateButton.textContent = 'Actualizar';
+    updateButton.classList.add('update');
+    updateButton.onclick = () => {
+      const nuevoNombre = prompt('Nuevo nombre:', materia.nombre);
+      if (nuevoNombre) {
+        fetch(`${API_URL}/materias/${materia._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre: nuevoNombre })
+        }).then(response => {
+          if (response.ok) {
+            cargarDatos();
+          }
+        });
+      }
+    };
+
+    actions.appendChild(updateButton);
+    actions.appendChild(deleteButton);
+    li.appendChild(actions);
+    listaMaterias.appendChild(li);
+  });
+}
+
+cargarDatos();
+</script>
+</body>
+</html>
